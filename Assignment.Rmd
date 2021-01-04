@@ -1,0 +1,60 @@
+---
+title: "Assignment"
+author: "Sanket Kumar"
+date: "04/01/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document for the assignment project in Practical Machine Learning Course. Raw data is imported and  partitioned into training and test data in the ratio 70:30. Training and testing data cleaned by removing near zero variables and columns with 90% of the values as NA. Finally, the Random forest model is built on the cleaned data and the accuracy of model is found out using test data. The model is having accuracy of 99%. Finally, the predictions are for the given test data (validation in this case) is done.   
+
+```{r}
+library(caret)
+library(dplyr)
+library(randomForest)
+
+#Importing data
+data<-read.csv("~/pml-training.csv")
+
+#Partitioning data into test and training set
+inTrain<-createDataPartition(data$classe,times=1,p=0.7,list=FALSE)
+test<-data[-inTrain,]
+train<-data[inTrain,]
+
+validation<-read.csv("~/pml-testing.csv")
+
+#finding near zero varaince columns
+nzv<-nearZeroVar(train)
+
+#Removing near zero variance from test and training data
+train<-train[-nzv]
+test<-test[-nzv]
+
+#Removing user data from the model
+train<-train[-(1:6)]
+test<-test[-(1:6)]
+
+#Removing columns with 90% of the values as NA
+na_col <- sapply(train, function(x) mean(is.na(x))) > 0.90
+train <- train[, na_col==FALSE]
+test  <- test[, na_col==FALSE]
+
+#Classe is converted into factors for classification problem
+train$classe<-as.factor(train$classe)
+
+#Building Random Forest model
+fit<-train(classe~., data=train,method="rf", trControl=trainControl(method="cv",number = 3),ntree=200)
+
+#Getting the predictions to find accuracy of the model
+prediction<-predict(fit,test)
+confusionMatrix(prediction,as.factor(test$classe))
+
+#Getting final predictions
+predict(fit,validation)
+
+```
